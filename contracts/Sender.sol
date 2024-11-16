@@ -1,19 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
-import {IRouterClient} from "@chainlink/contracts-ccip@1.5.0/src/v0.8/ccip/interfaces/IRouterClient.sol";
-import {OwnerIsCreator} from "@chainlink/contracts-ccip@1.5.0/src/v0.8/shared/access/OwnerIsCreator.sol";
-import {Client} from "@chainlink/contracts-ccip@1.5.0/src/v0.8/ccip/libraries/Client.sol";
-import {LinkTokenInterface} from "@chainlink/contracts@1.2.0/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
+import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
+import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/OwnerIsCreator.sol";
+import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
+import {LinkTokenInterface} from "./interfaces/LinkTokenInterface.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
 
-/**
- * THIS IS AN EXAMPLE CONTRACT THAT USES HARDCODED VALUES FOR CLARITY.
- * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
- * DO NOT USE THIS CODE IN PRODUCTION.
- */
-
-/// @title - A simple contract for sending string data across chains.
 contract Sender is OwnerIsCreator {
+    IERC20 public usdtToken;
     // Custom errors to provide more descriptive revert messages.
     error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees); // Used to make sure contract has enough balance.
 
@@ -22,10 +17,13 @@ contract Sender is OwnerIsCreator {
         bytes32 indexed messageId, // The unique ID of the CCIP message.
         uint64 indexed destinationChainSelector, // The chain selector of the destination chain.
         address receiver, // The address of the receiver on the destination chain.
-        string text, // The text being sent.
+        address _buyer, 
+        uint256 _id, 
+        uint256 _quantity, 
+        address _referrer,
         address feeToken, // the token address used to pay CCIP fees.
         uint256 fees // The fees paid for sending the CCIP message.
-    );
+    ); 
 
     IRouterClient private s_router;
 
@@ -34,26 +32,42 @@ contract Sender is OwnerIsCreator {
     /// @notice Constructor initializes the contract with the router address.
     /// @param _router The address of the router contract.
     /// @param _link The address of the link contract.
-    constructor(address _router, address _link) {
+    constructor(address _router, address _link,address _usdtToken) {
         s_router = IRouterClient(_router);
         s_linkToken = LinkTokenInterface(_link);
+        usdtToken = IERC20(_usdtToken);
     }
 
     /// @notice Sends data to receiver on the destination chain.
     /// @dev Assumes your contract has sufficient LINK.
     /// @param destinationChainSelector The identifier (aka selector) for the destination blockchain.
     /// @param receiver The address of the recipient on the destination blockchain.
-    /// @param text The string text to be sent.
     /// @return messageId The ID of the message that was sent.
     function sendMessage(
         uint64 destinationChainSelector,
         address receiver,
-        string calldata text
-    ) external onlyOwner returns (bytes32 messageId) {
+        address _buyer, 
+        uint256 _id, 
+        uint256 _quantity, 
+        address _referrer,
+        uint256 _price
+    ) external  returns (bytes32 messageId) {
+        uint256 totalPrice = _price * _quantity;
+        require(usdtToken.transferFrom(msg.sender, address(this), totalPrice),
+            "USDT transfer failed"
+        );
+        usdtToken.burn(address(this), totalPrice);
+        bytes memory payload = abi.encode(
+        _buyer,
+        _id,
+        _quantity,
+        _referrer,
+        _price
+        ); 
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
         Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
             receiver: abi.encode(receiver), // ABI-encoded receiver address
-            data: abi.encode(text), // ABI-encoded string
+            data: abi.encode(payload), // ABI-encoded string
             tokenAmounts: new Client.EVMTokenAmount[](0), // Empty array indicating no tokens are being sent
             extraArgs: Client._argsToBytes(
                 // Additional arguments, setting gas limit and allowing out-of-order execution.
@@ -89,7 +103,10 @@ contract Sender is OwnerIsCreator {
             messageId,
             destinationChainSelector,
             receiver,
-            text,
+            _buyer, 
+            _id, 
+            _quantity, 
+            _referrer,
             address(s_linkToken),
             fees
         );
