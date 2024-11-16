@@ -22,13 +22,17 @@ async function main() {
 
   // 1. Deploy WorldID
   console.log('\nDeploying WorldID...')
-  // const WorldID = await ethers.getContractFactory('VerifyWorldID')
-  // const worldID = await WorldID.deploy()
-  // await worldID.waitForDeployment()
-  const worldID = await ethers.getContractAt(
-    'VerifyWorldID',
-    '0x24f8f18ffb94c4b802f16db390cf02e2143142b5'
+  const WorldID = await ethers.getContractFactory('VerifyWorldID')
+  const worldID = await WorldID.deploy(
+    '0x42FF98C4E85212a5D31358ACbFe76a621b50fC02', // World ID Router Base Sepolia
+    process.env.APP_ID || '',
+    process.env.ACTION_ID || ''
   )
+  await worldID.waitForDeployment()
+  // const worldID = await ethers.getContractAt(
+  //   'VerifyWorldID',
+  //   ''
+  // )
   console.log('WorldID deployed to:', await worldID.getAddress())
 
   // 2. Deploy Ethay
@@ -37,7 +41,7 @@ async function main() {
   const ethay = await Ethay.deploy(
     await usdt.getAddress(),
     await worldID.getAddress(),
-    '0x41c9e39574f40ad34c79f1c99b66a45efb830d4c'
+    '0x41c9e39574f40ad34c79f1c99b66a45efb830d4c' // Entropy Address Base Sepolia
   )
   await ethay.waitForDeployment() 
   console.log('Ethay deployed to:', await ethay.getAddress())
@@ -46,7 +50,7 @@ async function main() {
   console.log('\nDeploying CCIP Receiver...')
   const Receiver = await ethers.getContractFactory('Receiver')
   const receiver = await Receiver.deploy(
-    '0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93', // router base
+    '0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93', // router ccip base
     await usdt.getAddress(),
     await ethay.getAddress()
   )
@@ -66,17 +70,17 @@ async function main() {
   console.log('------------------')
   console.log('USDT Constructor Arguments:', [initialSupply.toString()])
   console.log('WorldID Constructor Arguments:', [
-    '0x42FF98C4E85212a5D31358ACbFe76a621b50fC02',
+    '0x42FF98C4E85212a5D31358ACbFe76a621b50fC02', // World ID Router Base Sepolia
     process.env.APP_ID,
     process.env.ACTION_ID,
   ])
   console.log('Ethay Constructor Arguments:', [
     await usdt.getAddress(),
     await worldID.getAddress(),
-    '0x41c9e39574f40ad34c79f1c99b66a45efb830d4c',
+    '0x41c9e39574f40ad34c79f1c99b66a45efb830d4c', // Entropy Address Base Sepolia
   ])
   console.log('CCIP Receiver Constructor Arguments:', [
-    '0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93', // router base
+    '0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93', // router ccip base
     await usdt.getAddress(),
     await ethay.getAddress(),
   ])
