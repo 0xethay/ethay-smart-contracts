@@ -274,13 +274,14 @@ contract Ethay is IEntropyConsumer {
     }
 
     function buyProduct(
+        address _buyer,
         uint256 _id,
         uint256 _quantity,
         address _referrer
     ) public {
         require(_id < productCount, "Invalid product ID");
         Product storage product = products[_id];
-        require(product.seller != msg.sender, "Cannot buy your own product");
+        require(product.seller != _buyer, "Cannot buy your own product");
         require(product.isForSale, "Product is not for sale");
         require(product.quantity >= _quantity, "Insufficient product quantity");
 
@@ -290,7 +291,7 @@ contract Ethay is IEntropyConsumer {
         uint256 purchaseId = purchaseCountsPerProduct[_id]++;
         purchases[_id][purchaseId] = Purchase(
             purchaseId,
-            msg.sender,
+            _buyer,
             _quantity,
             totalPrice,
             false,
@@ -306,7 +307,7 @@ contract Ethay is IEntropyConsumer {
 
         emit ProductPurchased(
             _id,
-            msg.sender,
+            _buyer,
             _quantity,
             totalPrice,
             purchaseId,
