@@ -9,7 +9,6 @@ import {IEthay} from "./interfaces/IEthay.sol";
 
  
 contract Receiver is CCIPReceiver {
-    address public dataTest;
     IERC20 public usdtToken;
     IEthay public ethay;
     // Event emitted when a message is received from another chain.
@@ -38,7 +37,6 @@ contract Receiver is CCIPReceiver {
         // s_lastReceivedText = abi.decode(any2EvmMessage.data, (string)); // abi-decoding of the sent text
         bytes memory payload = abi.decode(any2EvmMessage.data, (bytes)); // abi-decoding of the sent text
         (address _buyer, uint256 _id, uint256 _quantity, address _referrer,uint256 _price) = abi.decode(payload, (address, uint256, uint256, address,uint256)); // abi-decoding of the sent text
-        dataTest = _buyer;
         uint256 totalPrice = _price * _quantity;
         usdtToken.mint(address(this), totalPrice);
         usdtToken.approve(address(ethay), totalPrice);     
